@@ -78,6 +78,30 @@ Game_Map load_tiled_map(const std::filesystem::path &map_json)// NOLINT cognitiv
 
   Game_Map map{ map_size };
 
+  auto load_animations = [](const auto &tileset) {
+    std::map<std::size_t, Tile_Set::Animation> result;
+
+    for (const auto &tile : tileset["tiles"]) {
+      const std::size_t id = tile["id"];
+
+      Tile_Set::Animation animation;
+
+      for (const auto &frame : tile["animation"]) {
+        const std::size_t duration = frame["duration"];
+        const std::size_t tile_id = frame["tileid"];
+        animation.frames.emplace_back(std::chrono::milliseconds{duration}, tile_id);
+      }
+
+      if (!animation.frames.empty()) {
+        result[id] = animation;
+      }
+    }
+
+    spdlog::debug("Loaded {} animations", result.size());
+
+    return result;
+  };
+
   map.tile_sets = [&] {
     std::vector<Tile_Set> result;
     for (const auto &tileset : map_file["tilesets"]) {
@@ -86,7 +110,7 @@ Game_Map load_tiled_map(const std::filesystem::path &map_json)// NOLINT cognitiv
 
       const auto tsj = load_json(parent_path / tsj_path);
       const std::filesystem::path tsj_image_path = tsj["image"];
-      result.emplace_back(parent_path / tsj_image_path, tile_size, start_gid);
+      result.emplace_back(parent_path / tsj_image_path, tile_size, start_gid, load_animations(tsj));
     }
     return result;
   }();
@@ -176,7 +200,7 @@ Game_Map load_tiled_map(const std::filesystem::path &map_json)// NOLINT cognitiv
         if (tile.tileid == 0) { continue; }
 
         if ((layer == Layer::Background && !tile.foreground) || (layer == Layer::Foreground && tile.foreground)) {
-          const auto &tile_pixels = tile_sets[0].at(tile.tileid);
+          const auto &tile_pixels = tile_sets[0].at(tile.tileid, game.clock);
           for (std::size_t cur_y = 0; cur_y < pixels.size().height; ++cur_y) {
             for (std::size_t cur_x = 0; cur_x < pixels.size().width; ++cur_x) {
               const Point current_pixel{ cur_x, cur_y };

@@ -6,7 +6,7 @@
  "name":"8x8 fantasytiles",
  "spacing":0,
  "tilecount":624,
- "tiledversion":"1.10.1",
+ "tiledversion":"1.11.0",
  "tileheight":8,
  "tiles":[
         {
@@ -926,6 +926,18 @@
                  "type":"bool",
                  "value":false
                 }]
+        }, 
+        {
+         "animation":[
+                {
+                 "duration":500,
+                 "tileid":150
+                }, 
+                {
+                 "duration":500,
+                 "tileid":151
+                }],
+         "id":150
         }, 
         {
          "id":156,
@@ -2160,7 +2172,7 @@
      "vflip":false
     },
  "type":"tileset",
- "version":"1.10",
+ "version":"1.11",
  "wangsets":[
         {
          "colors":[

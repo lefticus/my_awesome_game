@@ -20,8 +20,8 @@
             "scale": 12.904166666666667,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 36.112366806587026,
-                "y": 24.06199547949629
+                "x": 35.376170487568615,
+                "y": 31.96641911527285
             }
         },
         "tiles/Map.tmj": {
@@ -31,8 +31,8 @@
             "scale": 5.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 175.63636363636363,
-                "y": 74.81818181818183
+                "x": 120.0909090909091,
+                "y": 79.90909090909092
             }
         },
         "tiles/Map.tmx": {
@@ -47,8 +47,8 @@
             "scale": 12.904166666666667,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 51.37875363254763,
-                "y": 33.28382305456894
+                "x": 31.96641911527285,
+                "y": 31.96641911527285
             }
         },
         "tiles/Tencin.tmj": {
@@ -56,13 +56,14 @@
                 6
             ],
             "scale": 12.904166666666667,
-            "selectedLayer": 2,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 36.112366806587026,
-                "y": 24.06199547949629
+                "x": 31.96641911527285,
+                "y": 31.96641911527285
             }
         }
     },
+    "frame.defaultDuration": 500,
     "last.exportedFilePath": "C:/Users/Jason/Desktop",
     "last.imagePath": "C:/Users/Jason/Desktop/tiled/tiles",
     "last.worldFilePath": "C:/Users/Jason/Desktop",
@@ -77,11 +78,15 @@
     "openFiles": [
         "tiles/8x8 fantasytiles.tsj",
         "tiles/Map.tmj",
-        "tiles/Store.tmj"
+        "tiles/Store.tmj",
+        "tiles/Tencin.tmj",
+        "tiles/Home.tmj"
     ],
     "project": "maps.tiled-project",
     "property.type": "bool",
     "recentFiles": [
+        "tiles/Home.tmj",
+        "tiles/Tencin.tmj",
         "tiles/Store.tmj",
         "tiles/Map.tmj",
         "tiles/8x8 fantasytiles.tsj",
