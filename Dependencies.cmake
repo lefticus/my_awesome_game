@@ -44,7 +44,7 @@ function(travels_setup_dependencies)
   endif()
 
   if(NOT TARGET ftxui::screen)
-    cpmaddpackage("gh:ArthurSonzogni/FTXUI#main")
+    cpmaddpackage("gh:ArthurSonzogni/FTXUI@5.0.0")
   endif()
 
   if(NOT TARGET cons_expr::cons_expr)
