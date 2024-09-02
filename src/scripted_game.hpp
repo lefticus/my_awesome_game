@@ -128,13 +128,14 @@ struct Scripted_Game
         lefticus::travels::Game &, lefticus::travels::Point, lefticus::travels::Direction) { callable(engine); };
   }
 
-  void eval(const std::string_view script)
+  std::string eval(const std::string_view script)
   {
     const auto result =
       engine.sequence(engine.global_scope, std::get<engine_type::list_type>(engine.parse(script).first.value));
 
     const auto result_string = lefticus::to_string(engine, true, result);
     spdlog::trace("script executed '{}': '{}'", script, result_string);
+    return result_string;
   }
 
 

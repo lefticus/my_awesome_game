@@ -139,8 +139,7 @@ struct Displayed_Menu
 
     for (const auto &item : menu.items) {
       if (!item.visible || item.visible(game)) {
-        menu_lines.push_back(ftxui::Button(
-          item.text, [&game, &item]() { item.action(game); }, Animated()));
+        menu_lines.push_back(ftxui::Button(item.text, [&game, &item]() { item.action(game); }, Animated()));
       }
     }
 
@@ -201,14 +200,18 @@ ftxui::Component CatchEvent(ftxui::Component child, std::function<bool(ftxui::Ev
 }
 
 
-void play_game(Game &game, std::shared_ptr<log_sink<std::mutex>> log_sink)// NOLINT cognitive complexity
+void play_game(Game &game,
+  std::shared_ptr<log_sink<std::mutex>> log_sink,
+  std::function<std::string(std::string_view)> script_executor)// NOLINT cognitive complexity
 {
-
   Displayed_Menu current_menu{ Menu{}, game };
   bool show_log = false;
+  bool show_script_prompt = false;
+  std::string script;
 
   auto clear_popup_button = ftxui::Button("OK", [&]() { game.popup_message.clear(); });
   auto close_log = ftxui::Button("Close", [&] { show_log = false; });
+  auto close_script_prompt = ftxui::Button("Close", [&] { show_script_prompt = false; });
 
   // this should probably have a `bitmap` helper function that does what you expect
   // similar to the other parts of FTXUI
@@ -247,50 +250,66 @@ void play_game(Game &game, std::shared_ptr<log_sink<std::mutex>> log_sink)// NOL
 
         Direction from{};
 
-        if (current_event.is_character() && current_event.character() == "l") {
-          show_log = true;
-          return;
-        } else {
-          if (game.current_map_type == Game::Map_Type::Map_2D) {
-            if (current_event == ftxui::Event::ArrowUp) {
-              --location.y;
-              from = Direction::South;
-            } else if (current_event == ftxui::Event::ArrowDown) {
-              ++location.y;
-              from = Direction::North;
-            } else if (current_event == ftxui::Event::ArrowLeft) {
-              --location.x;
-              from = Direction::East;
-            } else if (current_event == ftxui::Event::ArrowRight) {
-              ++location.x;
-              from = Direction::West;
-            } else {
-              return;
-            }
-          } else {
-            const auto walls =
-              std::span<const lefticus::raycaster::Segment<float>>(game.maps_3d.at(game.current_map).map.segments);
-            if (current_event == ftxui::Event::ArrowUp) {
-              game.player.camera.try_move(.1f, walls);
-            } else if (current_event == ftxui::Event::ArrowDown) {
-              game.player.camera.try_move(-.1f, walls);
-            } else if (current_event == ftxui::Event::ArrowLeft) {
-              game.player.camera.rotate(-.1f);
-            } else if (current_event == ftxui::Event::ArrowRight) {
-              game.player.camera.rotate(.1f);
-            }
+        /*
+        if (current_event.is_character()) {
+          if (current_event.character() == "l") {
+            show_log = true;
+            return;
+          } else if (current_event.character() == "p") {
+            show_script_prompt = true;
+            return;
+          }
+        }*/
 
-            const auto new_3d_location =
-              game.get_current_map_3d().map.get_first_intersection(game.player.camera.location).value_or(' ');
-            if (new_3d_location != last_3d_location) {
-              const auto action = game.get_current_map_3d().enter_actions.find(new_3d_location);
-              if (action != game.get_current_map_3d().enter_actions.end()) { action->second(game, new_3d_location); }
-              last_3d_location = new_3d_location;
-            }
-
+        if (current_event.is_character()) {
+          if (current_event.character() == "l") {
+            show_log = true;
+            return;
+          } else if (current_event.character() == "p") {
+            show_script_prompt = true;
             return;
           }
         }
+        if (game.current_map_type == Game::Map_Type::Map_2D) {
+          if (current_event == ftxui::Event::ArrowUp) {
+            --location.y;
+            from = Direction::South;
+          } else if (current_event == ftxui::Event::ArrowDown) {
+            ++location.y;
+            from = Direction::North;
+          } else if (current_event == ftxui::Event::ArrowLeft) {
+            --location.x;
+            from = Direction::East;
+          } else if (current_event == ftxui::Event::ArrowRight) {
+            ++location.x;
+            from = Direction::West;
+          } else {
+            return;
+          }
+        } else {
+          const auto walls =
+            std::span<const lefticus::raycaster::Segment<float>>(game.maps_3d.at(game.current_map).map.segments);
+          if (current_event == ftxui::Event::ArrowUp) {
+            game.player.camera.try_move(.1f, walls);
+          } else if (current_event == ftxui::Event::ArrowDown) {
+            game.player.camera.try_move(-.1f, walls);
+          } else if (current_event == ftxui::Event::ArrowLeft) {
+            game.player.camera.rotate(-.1f);
+          } else if (current_event == ftxui::Event::ArrowRight) {
+            game.player.camera.rotate(.1f);
+          }
+
+          const auto new_3d_location =
+            game.get_current_map_3d().map.get_first_intersection(game.player.camera.location).value_or(' ');
+          if (new_3d_location != last_3d_location) {
+            const auto action = game.get_current_map_3d().enter_actions.find(new_3d_location);
+            if (action != game.get_current_map_3d().enter_actions.end()) { action->second(game, new_3d_location); }
+            last_3d_location = new_3d_location;
+          }
+
+          return;
+        }
+
 
         if (game.maps.at(game.current_map).can_enter_from(game, location, from)) {
           auto exit_action = game.maps.at(game.current_map).locations.at(last_location).exit_action;
@@ -416,12 +435,43 @@ void play_game(Game &game, std::shared_ptr<log_sink<std::mutex>> log_sink)// NOL
            | ftxui::border;
   });
 
+  std::vector<std::string> script_log;
+  int selected_script_log = 0;
+  auto script_log_menu = ftxui::Menu(&script_log, &selected_script_log);
+
+
+  auto input_script_options = ftxui::InputOption::Default();
+  input_script_options.on_enter = [&] {
+    auto result = script_executor(script);
+    script_log.push_back("> " + script);
+    script.clear();
+    script_log.push_back(result);
+    selected_script_log = static_cast<int>(script_log.size() - 1);
+  };
+  auto input_script = ftxui::Input(&script, input_script_options);
+
+  auto script_prompt_renderer =
+    ftxui::Renderer(ftxui::Container::Vertical({ script_log_menu, input_script, close_script_prompt }),
+
+      [&] {
+        return ftxui::vbox({ script_log_menu->Render() | ftxui::vscroll_indicator
+                               | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 15),
+
+
+                 ftxui::hbox({ ftxui::text("> "), input_script->Render() }),
+                 close_script_prompt->Render() })
+               | ftxui::border;
+      });
+
   int depth = 0;
 
-  auto main_container = ftxui::Container::Tab({ game_renderer, menu_renderer, popup_renderer, log_renderer }, &depth);
+  auto main_container = ftxui::Container::Tab(
+    { game_renderer, menu_renderer, popup_renderer, log_renderer, script_prompt_renderer }, &depth);
 
   auto main_renderer = ftxui::Renderer(main_container, [&] {
-    if (show_log) {
+    if (show_script_prompt) {
+      depth = 4;
+    } else if (show_log) {
       depth = 3;
     } else if (game.has_popup_message()) {
       depth = 2;
@@ -452,7 +502,13 @@ void play_game(Game &game, std::shared_ptr<log_sink<std::mutex>> log_sink)// NOL
     }
 
     if (depth > 2) {
-      document = ftxui::dbox({ document, log_renderer->Render() | ftxui::clear_under | ftxui::center });
+      if (show_log) {
+        document = ftxui::dbox({ document, log_renderer->Render() | ftxui::clear_under | ftxui::center });
+      }
+    }
+
+    if (depth > 3) {
+      document = ftxui::dbox({ document, script_prompt_renderer->Render() | ftxui::clear_under | ftxui::center });
     }
 
     return document;
@@ -504,7 +560,7 @@ int main(int argc, const char **argv)
 
     bool show_version = false;
     app.add_flag("--version", show_version, "Show version information");
-    std::filesystem::path filename = "";
+    std::filesystem::path filename{};
     app.add_option("-f,--file", filename, "cons_expr game script to execute")->required();
 
     CLI11_PARSE(app, argc, argv);
@@ -531,7 +587,7 @@ int main(int argc, const char **argv)
     spdlog::set_default_logger(std::make_shared<spdlog::logger>("default", log_sink));
 
     spdlog::set_level(spdlog::level::trace);
-    lefticus::travels::play_game(game.game, log_sink);
+    lefticus::travels::play_game(game.game, log_sink, [&game](std::string_view script) { return game.eval(script); });
   } catch (const std::exception &e) {
     lefticus::print("Unhandled exception in main: {}", e.what());
   }
