@@ -437,7 +437,18 @@ void play_game(Game &game,
 
   std::vector<std::string> script_log;
   int selected_script_log = 0;
-  auto script_log_menu = ftxui::Menu(&script_log, &selected_script_log);
+  ftxui::MenuOption script_log_menu_options;
+  ftxui::MenuEntryOption script_log_menu_entry_options;
+  script_log_menu_entry_options.transform=[](const ftxui::EntryState &state) {
+    ftxui::Element e = ftxui::text(state.label);
+    if (state.active && state.focused) {
+      e = e | ftxui::inverted;
+    }
+    return e;
+  };
+  script_log_menu_options.entries_option = script_log_menu_entry_options;
+
+  auto script_log_menu = ftxui::Menu(&script_log, &selected_script_log, script_log_menu_options);
 
 
   auto input_script_options = ftxui::InputOption::Default();
@@ -454,7 +465,7 @@ void play_game(Game &game,
     ftxui::Renderer(ftxui::Container::Vertical({ script_log_menu, input_script, close_script_prompt }),
 
       [&] {
-        return ftxui::vbox({ script_log_menu->Render() | ftxui::vscroll_indicator
+        return ftxui::vbox({ script_log_menu->Render() | ftxui::vscroll_indicator | ftxui::frame
                                | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 15),
 
 
